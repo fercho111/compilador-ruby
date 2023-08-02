@@ -37,10 +37,6 @@ class Token
         @literal = literal
     end
 
-    def eql(other)
-        @token_type == other.token_type && @literal == other.literal
-    end
-
     def to_s
         "Type: #{@token_type}, Literal: #{@literal}"
     end
@@ -60,4 +56,5 @@ def lookup_token_type(literal)
     }
 
     keywords[literal] || TokenType::IDENT
+    
 end

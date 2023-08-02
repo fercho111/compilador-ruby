@@ -16,5 +16,3 @@ def start_repl
         end
     end
 end
-
-start_repl
