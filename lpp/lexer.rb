@@ -7,28 +7,65 @@ class Lexer
         @character = ''
         @read_position = 0
         @position = 0
+        read_character
     end
 
     def next_token
         skip_whitespace
-
+      
         if @character =~ /^=$/
-            if peek_character == '='
-                token = make_two_character_token(TokenType::EQ)
-            else
-                token = Token.new(TokenType::ASSIGN, @character)
-            end
-
-
-
+          if peek_character == '='
+            token = make_two_character_token(TokenType::EQ)
+          else
+            token = Token.new(TokenType::ASSIGN, @character)
+          end
+        elsif @character =~ /^\+$/
+          token = Token.new(TokenType::PLUS, @character)
+        elsif @character =~ /^$/
+          token = Token.new(TokenType::EOF, @character)
+        elsif @character =~ /^\($/
+          token = Token.new(TokenType::LPAREN, @character)
+        elsif @character =~ /^\)$/
+          token = Token.new(TokenType::RPAREN, @character)
+        elsif @character =~ /^\{$/
+          token = Token.new(TokenType::LBRACE, @character)
+        elsif @character =~ /^\}$/
+          token = Token.new(TokenType::RBRACE, @character)
+        elsif @character =~ /^,$/
+          token = Token.new(TokenType::COMMA, @character)
+        elsif @character =~ /^;$/
+          token = Token.new(TokenType::SEMICOLON, @character)
+        elsif @character =~ /^-$/
+          token = Token.new(TokenType::MINUS, @character)
+        elsif @character =~ /^\/$/
+          token = Token.new(TokenType::DIVISION, @character)
+        elsif @character =~ /^\*$/
+          token = Token.new(TokenType::MULTIPLICATION, @character)
+        elsif @character =~ /^<$/
+          token = Token.new(TokenType::LT, @character)
+        elsif @character =~ /^>$/
+          token = Token.new(TokenType::GT, @character)
+        elsif @character =~ /^!$/
+          if peek_character == '='
+            token = make_two_character_token(TokenType::NOT_EQ)
+          else
+            token = Token.new(TokenType::NEGATION, @character)
+          end
+        elsif is_letter(@character)
+          literal = read_identifier
+          token_type = lookup_token_type(literal)
+          return Token.new(token_type, literal)
+        elsif is_number(@character)
+          literal = read_number
+          return Token.new(TokenType::INT, literal)
         else
-            token = Token.new(TokenType::ILLEGAL, @character)
+          token = Token.new(TokenType::ILLEGAL, @character)
         end
-
+      
         read_character
         token
-
-    end
+      end
+      
 
     private
 
@@ -53,6 +90,9 @@ class Lexer
         else
             @character = @source[@read_position]
         end
+        @position = @read_position
+        @read_position += 1
+
     end
 
     def read_identifier
@@ -77,7 +117,7 @@ class Lexer
 
     def peek_character
         if @read_position >= @source.length
-            ''
+            return ''
         end
 
         @source[@read_position]
