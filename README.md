@@ -10,4 +10,4 @@ export PATH="$PATH:$GEM_HOME/bin"
 al final de su archivo de ~/.bashrc
 
 # Probar REPL
-Para probar solo ejecutan `ruby lpp/repl.rb`
+Para probar solo ejecutan `ruby main.rb`
