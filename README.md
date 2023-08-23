@@ -1,9 +1,9 @@
 # Tarea Lenguajes y Compiladores
 
 **Por:**
-**1. José Fernando Gomez Bedoya**
-**2. Camilo Valencia Giraldo**
-**3. José David Jayk Vanegas**
+1. José Fernando Gomez Bedoya
+2. Camilo Valencia Giraldo
+3. José David Jayk Vanegas
 
 Para correr el codigo tienen que instalar Ruby, en Linux es `sudo apt install ruby`, en windows buscan RubyInstaller en internet y siguen las instrucciones.
 
