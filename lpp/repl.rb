@@ -1,23 +1,19 @@
 require_relative 'lexer'
-require_relative 'tokens'
 require_relative 'parser'
+require_relative 'evaluator'
+require_relative 'ast'
 
-def start_repl
-  loop do
-    print '>> '
-    source = gets.chomp
-    break if source == "salir()"
+$EOF_TOKEN=Token.new(TokenType::EOF,'')
+def star_repel()
+    while (source=gets.chomp)!='salir()'
+        lexer=Lexer.new(source)
+        parser=Parser.new(lexer)
+        program=parser.parse_program()
+        evaluated=evaluate(program)
 
-    lexer = Lexer.new(source)
-    parser = Parser.new(lexer)
-    
-    begin
-      result = parser.parse
-      puts "Resultado: #{result}"
-    rescue StandardError => e
-      puts "Error: #{e.message}"
+        if evaluated!=nil
+            puts evaluated.inspect()
+        end
     end
-  end
 end
 
-start_repl
