@@ -192,3 +192,100 @@ class Integer(Expression):
 
     def __str__(self) -> str:
         return str(self.value)
+
+        class Prefix < Expression
+            attr_accessor :operator, :right
+            def initialize(token: nil, operator: nil, right: nil)
+                super(token)
+                @operator = operator
+                @right = right
+            end
+        
+            def to_s
+                return "(@operator#{to_s(@right)})"
+            end
+        end
+        
+        class Infix < Expression
+            attr_accessor :left, :operator, :right
+            def initialize(token: nil, left: nil, operator: nil, right: nil)
+                super(token)
+                @left = left
+                @operator = operator
+                @right = right
+            end
+        
+            def to_s
+                return "(#{to_s(@left)} #{@operator} #{to_s(@right)})"
+            end
+        end
+        
+        class Boolean < Expression
+            attr_accessor :value
+            def initialize(token: nil, value: nil)
+                super(token)
+                @value = value
+            end
+        
+            def to_s
+                return @token.literal
+            end
+        end
+        
+        class Block < Statement
+            attr_accessor :statements
+            def initialize(token: nil, statements: nil)
+                super(token)
+                @statements = statements
+            end
+        
+            def to_s
+                out = @statements.map { |statement| to_s(statement) }.join
+                return out
+            end
+        end
+        
+        class If < Expression
+            attr_accessor :condition, :consequence, :alternative
+            def initialize(token: nil, condition: nil, consequence: nil, alternative: nil)
+                super(token)
+                @condition = condition
+                @consequence = consequence
+                @alternative = alternative
+            end
+        
+            def to_s
+                out = "si #{to_s(@condition)} #{to_s(@consequence)}"
+                if @alternative
+                    out += "si_no #{to_s(@alternative)}"
+                end
+                return out
+            end
+        end
+        
+        class Function < Expression
+            attr_accessor :parameters, :body
+            def initialize(token: nil, parameters: nil, body: nil)
+                super(token)
+                @parameters = parameters
+                @body = body
+            end
+        
+            def to_s
+                param_list = @parameters.map { |parameter| to_s(parameter) }
+                params = param_list.join(', ')
+                return "#{@token_literal}(#{params}) #{to_s(@body)}"
+            end
+        end
+        
+        class Call < Expression
+            attr_accessor :function, :arguments
+            def initialize(token: nil, function: nil, arguments: nil)
+                super(token)
+                @function = function
+                @arguments = arguments
+            end
+        
+            def to_s
+                arg_list = @arguments.map { |argument| to_s(argument) }
+                args = arg_list.join(', ')
