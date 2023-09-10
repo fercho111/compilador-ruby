@@ -1,6 +1,8 @@
 require_relative 'tokens'
 
 class Lexer
+  
+    attr_accessor :source  # Esto crea un getter y un setter para el atributo source
 
     def initialize(source)
         @source = source
