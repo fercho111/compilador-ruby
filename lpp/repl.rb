@@ -1,23 +1,18 @@
 require_relative 'lexer'
 require_relative 'tokens'
-require_relative 'parser'
+
+# EOF_TOKEN = Token.new(TokenType::EOF, '')
 
 def start_repl
-  loop do
-    print '>> '
-    source = gets.chomp
-    break if source == "salir()"
-
-    lexer = Lexer.new(source)
-    parser = Parser.new(lexer)
-    
-    begin
-      result = parser.parse
-      puts "Resultado: #{result}"
-    rescue StandardError => e
-      puts "Error: #{e.message}"
+    loop do
+        print '>> '
+        source = gets.chomp
+        break if source == "salir()"
+        lexer = Lexer.new(source)
+        loop do
+            token = lexer.next_token
+            break if token.token_type == :EOF
+            puts token
+        end
     end
-  end
 end
-
-start_repl
