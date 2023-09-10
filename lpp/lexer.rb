@@ -57,7 +57,7 @@ class Lexer
           return Token.new(token_type, literal)
         elsif is_number(@character)
           literal = read_number
-          return Token.new(TokenType::INT,literal)
+          return Token.new(TokenType::INT, literal)
         else
           token = Token.new(TokenType::ILLEGAL, @character)
         end
