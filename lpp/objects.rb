@@ -1,58 +1,59 @@
+require 'enum'
+
 class ObjectType
-    BOOLEAN=:boolean
-    INTEGER=:integer
-    NULL=:null
-    FLOAT=:float
-    STRING=:string
+    include Enum
+
+    new :BOOLEAN
+    new :INTEGER
+    new :NULL
+    new :FLOAT
+    new :STRING
 end
 
 class Object
-    def type()
-        raise NotImplementedError.new("Abstract method type not implemented")
+    def type
     end
-
-    def inspect()
-        raise NotImplementedError.new("Abstract method inspect not implemented")
+    
+    def inspect
     end
-end
-
-class Integer < Object
+  end
+  
+  class Integer < Object
+    attr_accessor :value
     def initialize(value)
-        @value=value
+      @value=value
     end
     
-    def type()
-        return ObjectType::INTEGER
+    def type
+      ObjectType::INTEGER
     end
     
-    def inspect()
-        return @value.to_s
+    def inspect
+      @value.to_s
     end
-end
-
-class Boolean < Object
+  end
+  
+  class Boolean < Object
+    attr_accessor :value
     def initialize(value)
-        @value=value
+      @value=value
     end
     
-    def type()
-        return ObjectType::BOOLEAN
+    def type
+      ObjectType::BOOLEAN
     end
     
-    def inspect()
-        return @value.to_s
+    def inspect
+      @value.to_s
     end
-end
-
-class Null < Object
-    
-    
-    def type()
-        return ObjectType::NULL
+  end
+  
+  class Null < Object
+    def type
+      ObjectType::NULL
     end
     
-    def inspect()
-        return 'nulo'
+    def inspect
+      'nulo'
     end
-    
-end
+  end
