@@ -107,35 +107,32 @@ class ExpressionStatement < Statement
 
 end
 
-class Integer < Expression
+class MyInteger < Expression
+  attr_accessor :value
 
-    attr_reader :value
+  def initialize(token, value = nil)
+    super(token)
+    @value = value
+  end
 
-    def initialize(token, value = nil)
-        super(token)
-        @value = value
-    end
-
-    def to_s
-        "#{value}"
-    end
-
+  def to_s
+    value.to_s
+  end
 end
 
+
 class Prefix < Expression
+  attr_reader :operator, :right
 
-    attr_reader :operator, :right
+  def initialize(token, operator, right = nil)
+    super(token)
+    @operator = operator
+    @right = right
+  end
 
-    def initialize(token, operator, right = nil)
-        super(token)
-        @operator = operator
-        @right = right
-    end
-
-    def to_s
-        "(#{operator}#{right})"
-    end
-
+  def to_s
+    "(#{operator}#{right})"
+  end
 end
 
 class Infix < Expression

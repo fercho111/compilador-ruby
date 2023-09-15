@@ -28,7 +28,7 @@ module Abc
     end
   end
   
-  class Integer < Object
+  class MyInteger < Object
     def initialize(value)
       @value=value
     end
