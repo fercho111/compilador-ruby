@@ -54,7 +54,6 @@ class Parser
     program
   end
 
-
   private
 
   # Modificaciones en el Parser
@@ -70,82 +69,15 @@ class Parser
     PRECEDENCES.fetch(@current_token.token_type, Precedence::LOWEST)
   end
 
-
-  def parse_call_arguments
-    arguments = []
-    # assert
-
-    if @peek_token.token_type == TokenType::RPAREN
-      advance_tokens
-      return arguments
-    end
-    advance_tokens
-    if (expression = parse_expression(Precedence::LOWEST))
-      arguments.push(expression)
-    end
-
-    while @peek_token.token_type == TokenType::COMMA
-      advance_tokens
-      advance_tokens
-      
-      if (expression = parse_expression(Precedence::LOWEST))
-        arguments.push(expression)
-      end
-    end
-
-    if !expected_token(TokenType::RPAREN)
-      return nil
-    end
-
-    arguments
-
-  end
-
   
-  def parse_term
-    left = parse_factor
-  
-    while [TokenType::MULTIPLICATION, TokenType::DIVISION].include?(@current_token.token_type)
-      operator = @current_token
-      consume(operator.token_type)
-      right = parse_factor
-  
-      if operator.token_type == TokenType::MULTIPLICATION
-        left *= right
-      else
-        left /= right
-      end
-    end
-  
-    left
-  end
-  
-  def parse_factor
-    if @current_token.token_type == TokenType::INT
-      value = @current_token.literal.to_i
-      consume(TokenType::INT)
-    elsif @current_token.token_type == TokenType::LPAREN
-      consume(TokenType::LPAREN)
-      value = parse_expression
-      consume(TokenType::RPAREN)
-    else
-      raise "Error de sintaxis: Se esperaba un número entero o paréntesis."
-    end
-  
-    value
-  end
-  
-
-  def consume(expected_token_type)
-    if @current_token.token_type == expected_token_type
-      @current_token = @lexer.next_token
-    else
-      raise "Error de sintaxis: Se esperaba #{expected_token_type}, pero se encontró #{@current_token.token_type}."
-    end
-  end
 
   # nuevas funciones, en desarrollo
 
+  def advance_tokens
+    @current_token = @peek_token
+    @peek_token = @lexer.next_token
+  end
+  
   def current_precedence
     # raise 'Assertion error' if @current_token.nil?
   
@@ -155,13 +87,6 @@ class Parser
     Precedence::LOWEST
   end
   
-
-
-  def advance_tokens
-    @current_token = @peek_token
-    @peek_token = @lexer.next_token
-  end
-
   def expected_token(token_type)
     #assert
     if peek_token.token_type == token_type
