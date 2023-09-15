@@ -65,45 +65,11 @@ class Parser
     @peek_token = @lexer.next_token
   end
 
-  def current_precedende
+  def current_precedence
     # assert
     PRECEDENCES.fetch(@current_token.token_type, Precedence::LOWEST)
   end
 
-  def expected_token(token_type)
-    #assert
-    if peek_token.token_type == token_type
-      advance_tokens
-      true
-    end
-      expected_token_error(token_type)
-      false
-  end
-
-  def expected_token_error(token_type)
-    # assert 
-    error = 'Se esperaba que el siguiente token fuera #{token_type} pero se obtuvo #{@peek_token.token_type}'
-    @errors.append(error)
-  end
-
-  def parse_block
-    # assert
-    block_statement = Block.new(@current_token, [])
-    advance_tokens
-    while !(@current_token.token_type == TokenType::RBRACE) && !(@current_token.token_type == TokenType::EOF)
-      statement = parse_statement
-      if statement
-        block_statement.statements.push(statement)
-      end
-      advance_tokens
-    end
-    block_statement
-  end
-
-  def parse_boolean
-    # assert
-    Boolean.new(@current_token, @current_token.token_type == TokenType::TRUE)
-  end
 
   def parse_call_arguments
     arguments = []
@@ -135,20 +101,6 @@ class Parser
 
   end
 
-  def parse_expression(precedence)
-    # assert
-    
-    prefix_parse_fn = @prefix_parse_fns[@current_token.token_type]
-    if prefix_parse_fn == nil
-      message = 'No se encontro ninguna funcion para parsear #{@current_token.literal}'
-      @errors.push(message)
-      return
-    end
-    left_expression = prefix_parse_fn
-    # assert
-    while !(@peek_token.token_type == TokenType::SEMICOLON) && precedence < peek
-
-  end
   
   def parse_term
     left = parse_factor
@@ -210,9 +162,248 @@ class Parser
     @peek_token = @lexer.next_token
   end
 
+  def expected_token(token_type)
+    #assert
+    if peek_token.token_type == token_type
+      advance_tokens
+      true
+    end
+      expected_token_error(token_type)
+      false
+  end
 
+  def expected_token_error(token_type)
+    # assert 
+    error = 'Se esperaba que el siguiente token fuera #{token_type} pero se obtuvo #{@peek_token.token_type}'
+    @errors.append(error)
+  end
 
+  def parse_block
+    # assert
+    block_statement = Block.new(@current_token, [])
+    advance_tokens
+    while !(@current_token.token_type == TokenType::RBRACE) && !(@current_token.token_type == TokenType::EOF)
+      statement = parse_statement
+      if statement
+        block_statement.statements.push(statement)
+      end
+      advance_tokens
+    end
+    block_statement
+  end
 
+  def parse_boolean
+    # assert
+    Boolean.new(@current_token, @current_token.token_type == TokenType::TRUE)
+  end
+
+  def parse_call(function)
+    # assert
+    call = Call.new(@current_token, function)
+    call.arguments = parse_call_arguments()
+    return call
+  end
+
+  def parse_call_arguments
+    arguments = []
+    # assert
+    if @peek_token.token_type == TokenType::RPAREN
+      advance_tokens()
+      return arguments
+    end
+
+    advance_tokens()
+
+    if (expression = parse_expression(Precedence::LOWEST)) != nil
+      arguments.append(expression)
+    end
+
+    while @peek_token.token_type == TokenType::COMMA
+      advance_tokens()
+      advance_tokens()
+      
+      if (expression = parse_expression(Precedence::LOWEST)) != nil
+        arguments.push(expression)
+      end
+    end
+    if expected_token(TokenType::RPAREN) == nil
+      return nil
+    end
+    return arguments
+  end
+
+  def parse_expression(precedence)
+    # assert
+    
+    prefix_parse_fn = @prefix_parse_fns[@current_token.token_type]
+    if prefix_parse_fn == nil
+      message = 'No se encontro ninguna funcion para parsear #{@current_token.literal}'
+      @errors.push(message)
+      return
+    end
+    left_expression = prefix_parse_fn
+    # assert
+    while !(@peek_token.token_type == TokenType::SEMICOLON) && precedence < peek_precedence()
+      
+      infix_parse_fn = infix_parse_fns[@peek_token.token_type]
+      if infix_parse_fn == nil
+        return left_expression
+      end
+      advance_tokens()
+      # assert
+      left_expression = infix_parse_fn(left_expression)
+      return left_expression
+  end
+  
+  def parse_expression_statement
+    #assert
+    expression_statement = ExpressionStatement.new(@current_token)
+    expression_statement.expression = parse_expression(Precedence::LOWEST)
+    # assert
+    if @peek_token.token_type == TokenType::SEMICOLON
+      advance_tokens()
+    end
+    return expression_statement
+  end
+
+  def parse_grouped_expression
+    advance_tokens()
+    expression = parse_expression(Precedence::LOWEST)
+    if expected_token(TokenType::RPAREN) == nil
+      return nil
+    end
+    return expression
+  end
+
+  def parse_functions
+    # assert
+    function = Function.new(@current_token)
+    
+    if expected_token(TokenType::LPAREN) == nil
+      return nil
+    end
+
+    function.parameters = parse_function_parameters()
+
+    if expected_token(TokenType::LBRACE) == nil
+      return None
+    end
+    
+    function.body = parse_block()
+
+    return function
+  end
+
+  def parse_function_parameters
+    params = []
+    #assert
+    if @peek_token.token_type == TokenType::RPAREN
+      advance_tokens()
+      return params
+    end
+
+    advance_tokens()
+
+    #assert
+
+    identifier = Identifier.new(@current_token, @current_token.literal)
+
+    params.push(identifier)
+    
+    while @peek_token.token_type == TokenType::COMMA
+      advance_tokens()
+      advance_tokens()
+      identifier = Identifier.new(@current_token, @current_token.literal)
+      params.push(identifier)
+    end
+
+    if expected_token(TokenType::RPAREN) == nil
+      return []
+    end
+    return params
+  end
+
+  def parse_identifier
+    #assert
+    return Identifier.new(@current_token, @current_token.literal)
+  end
+
+  def parse_if
+    # assert
+    if_expression = If.new(@current_token)
+    if expected_token(TokenType::LPAREN) == nil
+      return nil
+    end
+
+    advance_tokens()
+
+    if_expression.condition = parse_expression(Precedence::LOWEST)
+
+    if expected_token(TokenType::RPAREN) == nil
+      return nil
+    end
+
+    if expected_token(TokenType::LBRACE) == nil
+      return nil
+    end
+
+    if_expression.consequence = parse_block()
+
+    #assert 
+    if @peek_token.token_type == TokenType::ELSE
+      advance_tokens()
+
+      if expected_token(TokenType::LBRACE) == nil
+        return nil
+      end
+
+      if_expression.alternative = parse_block()
+    end
+    return if_expression
+  end
+
+  def parse_integer
+    raise "Current token is nil" if @current_token.nil?
+  
+    integer = Integer.new(@current_token)
+  
+    begin
+      integer.value = Integer(@current_token.literal)
+    rescue ArgumentError
+      message = "No se ha podido parsear #{@current_token.literal} como entero."
+      @errors.push
+      (message)
+      return nil
+    end
+  
+    return integer
+  end
+  
+  def parse_let_statement
+    # assert
+    let_statement = LetStatement.new(@current_token)
+
+    if expected_token(TokenType::IDENT) == nil
+      return nil
+    end
+
+    let_statement.name = parse_identifier()
+
+    if expected_token(TokenType::ASSIGN) == nil
+      return nil
+    end
+
+    advance_tokens()
+
+    let_statement.value = parse_expression(Precedence::LOWEST)
+
+    # assert
+    if @peek_token.token_type == TokenType::SEMICOLON
+      advance_tokens()
+    end
+
+    return let_statement
+  end
 
   def parse_prefix_expression
     #assert
@@ -220,6 +411,7 @@ class Parser
     advance_tokens
     prefix_expression.right = parse_expression(Precedence::PREFIX)
     return prefix_expression
+  end
 
   def parse_infix_expression(left)
     # raise 'Assertion error' if !@current_token.nil?
