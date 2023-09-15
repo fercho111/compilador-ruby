@@ -37,6 +37,11 @@ class Parser
     @current_token = nil
     @peek_token = nil
     @errors = []
+
+    @prefix_parse_fns = register_prefix_fns
+    @infix_parse_fns = register_infix_fns
+    
+
   end
 
   def parse_program
@@ -52,10 +57,6 @@ class Parser
     program
   end
 
-  def parse
-    parse_expression
-  end
-
   private
 
   # Modificaciones en el Parser
@@ -66,11 +67,29 @@ class Parser
     @peek_token = @lexer.next_token
   end
 
-  def current_precedende
+  def current_precedence
     # assert
     PRECEDENCES.fetch(@current_token.token_type, Precedence::LOWEST)
   end
 
+  
+
+  # nuevas funciones, en desarrollo
+
+  def advance_tokens
+    @current_token = @peek_token
+    @peek_token = @lexer.next_token
+  end
+  
+  def current_precedence
+    # raise 'Assertion error' if @current_token.nil?
+  
+    token_type = @current_token.token_type
+    return PRECEDENCES[token_type] if PRECEDENCES.key?(token_type)
+  
+    Precedence::LOWEST
+  end
+  
   def expected_token(token_type)
     raise 'Assertion error' if @peek_token.nil?
     
@@ -115,155 +134,121 @@ end
     return call
   end
 
+  def parse_call(function)
+    # assert
+    call = Call.new(@current_token, function)
+    call.arguments = parse_call_arguments()
+    return call
+  end
+
   def parse_call_arguments
     arguments = []
     # assert
     if @peek_token.token_type == TokenType::RPAREN
-      advance_tokens
+      advance_tokens()
       return arguments
     end
-    advance_tokens
-    if (expression = self._parse_expression(Precedence::LOWEST))
-      arguments.push(expression)
+
+    advance_tokens()
+
+    if (expression = parse_expression(Precedence::LOWEST)) != nil
+      arguments.append(expression)
     end
 
     while @peek_token.token_type == TokenType::COMMA
-      advance_tokens
-      advance_tokens
+      advance_tokens()
+      advance_tokens()
       
-      if (expression = parse_expression(Precedence::LOWEST))
+      if (expression = parse_expression(Precedence::LOWEST)) != nil
         arguments.push(expression)
       end
     end
-
-    if !expected_token(TokenType::RPAREN)
+    if expected_token(TokenType::RPAREN) == nil
       return nil
     end
-
-    arguments
-
+    return arguments
   end
 
-  def parse_expression(precedence)
-    raise 'current_token es nil' if @current_token.nil?
+  def parse_expression
+    left = parse_term
   
-    begin
-      prefix_parse_fn = @prefix_parse_fns[@current_token.token_type]
-    rescue KeyError
-      message = "No se encontró una función para analizar #{@current_token.literal}"
-      @errors << message
-      return nil
-    end
+    while [TokenType::PLUS, TokenType::MINUS].include?(@current_token.token_type)
+      operator = @current_token
+      consume(operator.token_type)
+      right = parse_term
   
-    left_expression = prefix_parse_fn.call()
-  
-    raise 'peek_token es nil' if @peek_token.nil?
-  
-    while !(@peek_token.token_type == TokenType::SEMICOLON) && (precedence < peek_precedence())
-      begin
-        infix_parse_fn = @infix_parse_fns[@peek_token.token_type]
-  
-        advance_tokens()
-  
-        raise 'left_expression es nil' if left_expression.nil?
-        left_expression = infix_parse_fn.call(left_expression)
-      rescue KeyError
-        return left_expression
+      if operator.token_type == TokenType::PLUS
+        left += right
+      else
+        left -= right
       end
     end
   
-    left_expression
+    left
   end
   
+  def parse_term
+    left = parse_factor
   
-  def parse_expression_statement
-    raise 'current_token es nil' if @current_token.nil?
-    
-    expression_statement = ExpressionStatement.new(token: @current_token)
-    expression_statement.expression = parse_expression(Precedence::LOWEST)
-    
-    raise 'peek_token es nil' if @peek_token.nil?
-    
-    if @peek_token.token_type == TokenType::SEMICOLON
-      advance_tokens()
-    end
-    
-    expression_statement
-  end
-
-  def parse_grouped_expression
-    advance_tokens()
-    expression = parse_expression(Precedence::LOWEST)
-    if !expected_token(TokenType::RPAREN)
-      return nil
-    end
-    expression
-  end
-
-  def parse_function
-    raise 'current_token es nil' if @current_token.nil?
-    function = Function.new(token: @current_token)
-    if !expected_token(TokenType::LPAREN)
-      return nil
-    end
-    function.parameters = parse_function_parameters
-    if !expected_token(TokenType::LBRACE)
-      return nil
-    end
-    function.body = parse_block
-    function
-  end
+    while [TokenType::MULTIPLICATION, TokenType::DIVISION].include?(@current_token.token_type)
+      operator = @current_token
+      consume(operator.token_type)
+      right = parse_factor
   
-   def parse_function_parameters
-    parameters = []
-    if @peek_token.token_type == TokenType::RPAREN
-      advance_tokens()
-      return parameters
-    end
-    advance_tokens()
-    identifier = Identifier.new(token: @current_token, value: @current_token.literal)
-    parameters.push(identifier)
-    while @peek_token.token_type == TokenType::COMMA
-      advance_tokens()
-      advance_tokens()
-      identifier = Identifier.new(token: @current_token, value: @current_token.literal)
-      parameters.push(identifier)
-    end
-    if !expected_token(TokenType::RPAREN)
-      return []
-    end
-    parameters
-  end
-
-  def parse_identifier
-    raise 'current_token es nil' if @current_token.nil?
-    Identifier.new(token: @current_token, value: @current_token.literal)
-  end
-
-  def parse_if
-    raise 'current_token es nil' if @current_token.nil?
-    if_expression = If.new(token: @current_token)
-    if !expected_token(TokenType::LPAREN)
-      return nil
-    end
-    advance_tokens()
-    if_expression.condition = parse_expression(Precedence::LOWEST)
-    if !expected_token(TokenType::RPAREN)
-      return nil
-    end
-    if !expected_token(TokenType::LBRACE)
-      return nil
-    end
-    if_expression.consequence = parse_block
-    if @peek_token.token_type == TokenType::ELSE
-      advance_tokens()
-      if !expected_token(TokenType::LBRACE)
-        return nil
+      if operator.token_type == TokenType::MULTIPLICATION
+        left *= right
+      else
+        left /= right
       end
-      if_expression.alternative = parse_block
     end
-    if_expression
+  
+    left
   end
+  
+  def parse_factor
+    if @current_token.token_type == TokenType::INT
+      value = @current_token.literal.to_i
+      consume(TokenType::INT)
+    elsif @current_token.token_type == TokenType::LPAREN
+      consume(TokenType::LPAREN)
+      value = parse_expression
+      consume(TokenType::RPAREN)
+    else
+      raise "Error de sintaxis: Se esperaba un número entero o paréntesis."
+    end
+  
+    value
+  end
+  
+
+  def consume(expected_token_type)
+    if @current_token.token_type == expected_token_type
+      @current_token = @lexer.next_token
+    else
+      raise "Error de sintaxis: Se esperaba #{expected_token_type}, pero se encontró #{@current_token.token_type}."
+    end
+  end
+
+  # nuevas funciones, en desarrollo
+
+  def current_precedence
+    # raise 'Assertion error' if @current_token.nil?
+  
+    token_type = @current_token.token_type
+    return PRECEDENCES[token_type] if PRECEDENCES.key?(token_type)
+  
+    Precedence::LOWEST
+  end
+  
+
+
+  def advance_tokens
+    @current_token = @peek_token
+    @peek_token = @lexer.next_token
+  end
+
+
+
 
   def parse_infix_expression(left)
     infix = Infix.new(token: @current_token, operator: @current_token.literal, left: left)
@@ -335,7 +320,7 @@ end
       return Precedence::LOWEST
     end
   end
-  
+
   def register_infix_fns
     {
       TokenType::PLUS => method(:parse_infix_expression),
@@ -349,97 +334,6 @@ end
       TokenType::LPAREN => method(:parse_call)
     }
   end
-
-  def register_prefix_fns
-    {
-      TokenType::IDENT => method(:parse_identifier),
-      TokenType::INT => method(:parse_integer),
-      TokenType::BANG => method(:parse_prefix_expression),
-      TokenType::MINUS => method(:parse_prefix_expression),
-      TokenType::TRUE => method(:parse_boolean),
-      TokenType::FALSE => method(:parse_boolean),
-      TokenType::LPAREN => method(:parse_grouped_expression),
-      TokenType::IF => method(:parse_if),
-      TokenType::FUNCTION => method(:parse_function)
-    }
-  end
-
+  
+  
 end
-  
-
-#   def parse_factor
-#     if @current_token.token_type == TokenType::INT
-#       value = @current_token.literal.to_i
-#       consume(TokenType::INT)
-#     elsif @current_token.token_type == TokenType::LPAREN
-#       consume(TokenType::LPAREN)
-#       value = parse_expression
-#       consume(TokenType::RPAREN)
-#     else
-#       raise "Error de sintaxis: Se esperaba un número entero o paréntesis."
-#     end
-  
-#     value
-#   end
-  
-
-#   def consume(expected_token_type)
-#     if @current_token.token_type == expected_token_type
-#       @current_token = @lexer.next_token
-#     else
-#       raise "Error de sintaxis: Se esperaba #{expected_token_type}, pero se encontró #{@current_token.token_type}."
-#     end
-#   end
-
-#   nuevas funciones, en desarrollo
-
-#   def current_precedence
-#     raise 'Assertion error' if @current_token.nil?
-  
-#     token_type = @current_token.token_type
-#     return PRECEDENCES[token_type] if PRECEDENCES.key?(token_type)
-  
-#     Precedence::LOWEST
-#   end
-  
-
-
-#   def advance_tokens
-#     @current_token = @peek_token
-#     @peek_token = @lexer.next_token
-#   end
-
-
-
-
-#   def parse_infix_expression(left)
-#     raise 'Assertion error' if !@current_token.nil?
-    
-#     infix = Infix.new(@current_token, left, @current_token.operator)
-
-#     precedence = current_precedence
-
-#     advance_tokens
-
-#     infix.right = parse_expression(precedence)
-    
-#     infix
-
-#   end
-
-#   def register_infix_fns
-#     {
-#       TokenType::PLUS => method(:parse_infix_expression),
-#       TokenType::MINUS => method(:parse_infix_expression),
-#       TokenType::DIVISION => method(:parse_infix_expression),
-#       TokenType::MULTIPLICATION => method(:parse_infix_expression),
-#       TokenType::EQ => method(:parse_infix_expression),
-#       TokenType::NOT_EQ => method(:parse_infix_expression),
-#       TokenType::LT => method(:parse_infix_expression),
-#       TokenType::GT => method(:parse_infix_expression),
-#       TokenType::LPAREN => method(:parse_call)
-#     }
-#   end
-  
-  
-# end
