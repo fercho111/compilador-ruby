@@ -27,7 +27,7 @@ PRECEDENCES = {
 
 class Parser
 
-  :attr_reader errors
+  attr_reader :errors
 
   def initialize(lexer)
     @lexer = lexer
@@ -46,7 +46,7 @@ class Parser
     # assert
     while @current_token.token_type != TokenType::EOF
       statement = parse_statement
-      if statement is not nil
+      if statement != nil
         program.statements.push(statement)
       end
       advance_tokens
@@ -69,7 +69,6 @@ class Parser
     PRECEDENCES.fetch(@current_token.token_type, Precedence::LOWEST)
   end
 
-  
 
   # nuevas funciones, en desarrollo
 
@@ -347,7 +346,7 @@ class Parser
 
     advance_tokens
 
-    infix.right = @parse_expression(precedence)
+    infix.right = parse_expression(precedence)
     
     infix
 
@@ -412,5 +411,5 @@ class Parser
       TokenType::LPAREN => method(:parse_call)
     }
   end
-  
+end
 end
