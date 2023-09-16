@@ -27,6 +27,9 @@
         RPAREN = :RPAREN
         SEMICOLON = :SEMICOLON
         TRUE = :TRUE
+        PROCEDURE = :PROCEDURE
+        LTEQ = :LTEQ 
+        GTEQ = :GTEQ 
     end
     
     class Token
@@ -48,7 +51,7 @@
             'funcion' => TokenType::FUNCTION,
             'para' => TokenType::FOR,
             'falso' => TokenType::FALSE,
-            'procedimiento' => TokenType::FUNCTION,
+            'procedimiento' => TokenType::PROCEDURE,
             'regresa' => TokenType::RETURN,
             'si' => TokenType::IF,
             'si_no' => TokenType::ELSE,

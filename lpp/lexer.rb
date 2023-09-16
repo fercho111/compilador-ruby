@@ -44,7 +44,11 @@ class Lexer
         elsif @character =~ /^<$/
           token = Token.new(TokenType::LT, @character)
         elsif @character =~ /^>$/
-          token = Token.new(TokenType::GT, @character)
+          token = Token.new(TokenType::GT, @character)             
+        elsif @character =~ /^<=$/
+          token = Token.new(TokenType::LTEQ, @character)
+        elsif @character =~ /^>=$/
+          token = Token.new(TokenType::GTEQ, @character)
         elsif @character =~ /^!$/
           if peek_character == '='
             token = make_two_character_token(TokenType::NOT_EQ)
