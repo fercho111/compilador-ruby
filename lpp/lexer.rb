@@ -42,13 +42,17 @@ class Lexer
         elsif @character =~ /^\*$/
           token = Token.new(TokenType::MULTIPLICATION, @character)
         elsif @character =~ /^<$/
-          token = Token.new(TokenType::LT, @character)
+          if peek_character == '='
+            token = make_two_character_token(TokenType::LTEQ)
+          else
+            token = Token.new(TokenType::LT, @character)
+          end
         elsif @character =~ /^>$/
-          token = Token.new(TokenType::GT, @character)             
-        elsif @character =~ /^<=$/
-          token = Token.new(TokenType::LTEQ, @character)
-        elsif @character =~ /^>=$/
-          token = Token.new(TokenType::GTEQ, @character)
+          if peek_character == '='
+            token = make_two_character_token(TokenType::GTEQ)
+          else
+            token = Token.new(TokenType::GT, @character)
+          end
         elsif @character =~ /^!$/
           if peek_character == '='
             token = make_two_character_token(TokenType::NOT_EQ)

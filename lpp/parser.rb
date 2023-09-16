@@ -13,9 +13,9 @@ class Parser
   private
 
   # Modificaciones en el Parser
-# Agrega reglas para expresiones con paréntesis
+  # Agrega reglas para expresiones con paréntesis
 
-def parse_expression
+  def parse_expression
     left = parse_comparison 
   
     while [TokenType::PLUS, TokenType::MINUS].include?(@current_token.token_type)
