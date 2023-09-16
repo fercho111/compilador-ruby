@@ -1,4 +1,5 @@
-class ASTNode
+module AST
+  class ASTNode
     def token_literal
       raise NotImplementedError
     end
@@ -89,10 +90,9 @@ class ASTNode
     def to_s
         "#{token_literal} #{return_value};"
     end
+  end
 
-end
-
-class ExpressionStatement < Statement
+  class ExpressionStatement < Statement
 
     attr_reader :expression
 
@@ -105,9 +105,9 @@ class ExpressionStatement < Statement
         "#{expression}"
     end
 
-end
+  end
 
-class Integer < Expression
+  class Integer < Expression
 
     attr_reader :value
 
@@ -119,10 +119,9 @@ class Integer < Expression
     def to_s
         "#{value}"
     end
+  end
 
-end
-
-class Prefix < Expression
+  class Prefix < Expression
 
     attr_reader :operator, :right
 
@@ -136,9 +135,9 @@ class Prefix < Expression
         "(#{operator}#{right})"
     end
 
-end
+  end
 
-class Infix < Expression
+  class Infix < Expression
 
     attr_reader :left, :operator, :right
 
@@ -153,9 +152,9 @@ class Infix < Expression
         "(#{left} #{operator} #{right})"
     end
 
-end
+  end
 
-class Boolean < Expression
+  class Boolean < Expression
     attr_reader :value
   
     def initialize(token:, value: nil)
@@ -230,4 +229,4 @@ class Boolean < Expression
       "#{function}(#{args})"
     end
   end
-  
+end

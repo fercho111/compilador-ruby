@@ -42,8 +42,8 @@ class Parser
   end
 
   def parse_program
-    program = Program.new([])
-    # assert
+    program = AST::Program.new([])
+    # raise 'Assertion error' if @current_token.nil?
     while @current_token.token_type != TokenType::EOF
       statement = parse_statement
       if statement != nil
@@ -56,9 +56,6 @@ class Parser
 
   private
 
-  # Modificaciones en el Parser
-  # Agrega reglas para expresiones con paréntesis
-
   def advance_tokens
     @current_token = @peek_token
     @peek_token = @lexer.next_token
@@ -68,10 +65,7 @@ class Parser
     # assert
     PRECEDENCES.fetch(@current_token.token_type, Precedence::LOWEST)
   end
-
-
-  # nuevas funciones, en desarrollo
-
+  
   def advance_tokens
     @current_token = @peek_token
     @peek_token = @lexer.next_token
@@ -92,8 +86,8 @@ class Parser
       advance_tokens
       true
     end
-      expected_token_error(token_type)
-      false
+    expected_token_error(token_type)
+    false
   end
 
   def expected_token_error(token_type)
@@ -177,6 +171,7 @@ class Parser
       # assert
       left_expression = infix_parse_fn(left_expression)
       return left_expression
+    end
   end
   
   def parse_expression_statement
@@ -199,7 +194,7 @@ class Parser
     return expression
   end
 
-  def parse_functions
+  def parse_function
     # assert
     function = Function.new(@current_token)
     
@@ -340,7 +335,7 @@ class Parser
   def parse_infix_expression(left)
     # raise 'Assertion error' if !@current_token.nil?
     #
-    infix = Infix(@current_token, left, @current_token.operator)
+    infix = Infix.new(@current_token, left, @current_token.operator)
 
     precedence = current_precedence
 
@@ -411,5 +406,5 @@ class Parser
       TokenType::LPAREN => method(:parse_call)
     }
   end
-end
+
 end
