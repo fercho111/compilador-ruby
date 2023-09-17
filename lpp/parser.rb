@@ -7,7 +7,7 @@ class Parser
   end
 
   def parse
-    parse_expression
+    parse_comparison
   end
 
   private
@@ -16,12 +16,12 @@ class Parser
   # Agrega reglas para expresiones con paréntesis
 
   def parse_expression
-    left = parse_comparison 
+    left = parse_term
   
     while [TokenType::PLUS, TokenType::MINUS].include?(@current_token.token_type)
       operator = @current_token
       consume(operator.token_type)
-      right = parse_comparison 
+      right = parse_term
   
       if operator.token_type == TokenType::PLUS
         left += right
@@ -34,12 +34,12 @@ class Parser
   end
 
   def parse_comparison
-    left = parse_term
+    left = parse_expression
     
     while [TokenType::EQ, TokenType::NOT_EQ, TokenType::LT, TokenType::GT, TokenType::LTEQ, TokenType::GTEQ].include?(@current_token.token_type)
       operator = @current_token
       consume(operator.token_type)
-      right = parse_term
+      right = parse_expression
       
       if operator.token_type == TokenType::EQ
         left = left == right
