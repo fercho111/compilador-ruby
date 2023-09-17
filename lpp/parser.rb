@@ -36,12 +36,16 @@ class Parser
   def parse_comparison
     left = parse_term
     
-    while [TokenType::LT, TokenType::GT, TokenType::LTEQ, TokenType::GTEQ].include?(@current_token.token_type)
+    while [TokenType::EQ, TokenType::NOT_EQ, TokenType::LT, TokenType::GT, TokenType::LTEQ, TokenType::GTEQ].include?(@current_token.token_type)
       operator = @current_token
       consume(operator.token_type)
       right = parse_term
       
-      if operator.token_type == TokenType::LT
+      if operator.token_type == TokenType::EQ
+        left = left == right
+      elsif operator.token_type == TokenType::NOT_EQ
+        left = left != right
+      elsif operator.token_type == TokenType::LT
         left = left < right
       elsif operator.token_type == TokenType::GT
         left = left > right
