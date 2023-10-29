@@ -1,11 +1,8 @@
-class ASTNode
-    def token_literal
-      raise NotImplementedError
-    end
+module AST
+  class ASTNode
+    def token_literal; end
   
-    def to_s
-      raise NotImplementedError
-    end
+    def to_s; end
   end
   
   class Statement < ASTNode
@@ -28,7 +25,7 @@ class ASTNode
     end
   
     def token_literal
-      token.literal
+      @token.literal
     end
   end
   
@@ -77,37 +74,37 @@ class ASTNode
     end
   end
 
+  class ExpressionStatement < Statement
+
+    attr_reader :expression
+
+    def initialize(token, expression = nil)
+      super(token)
+      @expression = expression
+    end
+
+    def to_s
+      @expression
+      # "#{expression}"
+    end
+
+  end
+
   class ReturnStatement < Statement
 
     attr_reader :return_value
 
     def initialize(token, return_value = nil)
-        super(token)
-        @return_value = return_value
+      super(token)
+      @return_value = return_value
     end
 
     def to_s
-        "#{token_literal} #{return_value};"
+      "#{token_literal} #{return_value}"
     end
+  end
 
-end
-
-class ExpressionStatement < Statement
-
-    attr_reader :expression
-
-    def initialize(token, expression = nil)
-        super(token)
-        @expression = expression
-    end
-
-    def to_s
-        "#{expression}"
-    end
-
-end
-
-class Integer < Expression
+  class Integer < Expression
 
     attr_reader :value
 
@@ -116,13 +113,12 @@ class Integer < Expression
         @value = value
     end
 
-    def to_s
-        "#{value}"
-    end
+    # def to_s
+    #     "#{value}"
+    # end
+  end
 
-end
-
-class Prefix < Expression
+  class Prefix < Expression
 
     attr_reader :operator, :right
 
@@ -133,12 +129,12 @@ class Prefix < Expression
     end
 
     def to_s
-        "(#{operator}#{right})"
+        "(#{@operator}#{@right})"
     end
 
-end
+  end
 
-class Infix < Expression
+  class Infix < Expression
 
     attr_reader :left, :operator, :right
 
@@ -150,12 +146,12 @@ class Infix < Expression
     end
 
     def to_s
-        "(#{left} #{operator} #{right})"
+        "(#{@left} #{operator} #{@right})"
     end
 
-end
+  end
 
-class Boolean < Expression
+  class Boolean < Expression
     attr_reader :value
   
     def initialize(token:, value: nil)
@@ -163,16 +159,16 @@ class Boolean < Expression
       @value = value
     end
   
-    def to_s
-      token_literal
-    end
+    # def to_s
+    #   token_literal
+    # end
   end
   
   class Block < Statement
     attr_reader :statements
   
-    def initialize(token:, statements:)
-      super(token: token)
+    def initialize(token, statements)
+      super(token)
       @statements = statements
     end
   
@@ -184,8 +180,8 @@ class Boolean < Expression
   class If < Expression
     attr_reader :condition, :consequence, :alternative
   
-    def initialize(token:, condition: nil, consequence: nil, alternative: nil)
-      super(token: token)
+    def initialize(token, condition, consequence, alternative)
+      super(token)
       @condition = condition
       @consequence = consequence
       @alternative = alternative
@@ -218,7 +214,7 @@ class Boolean < Expression
   class Call < Expression
     attr_reader :function, :arguments
   
-    def initialize(token:, function:, arguments: nil)
+    def initialize(token, function, arguments)
       super(token: token)
       @function = function
       @arguments = arguments
@@ -230,4 +226,4 @@ class Boolean < Expression
       "#{function}(#{args})"
     end
   end
-  
+end
