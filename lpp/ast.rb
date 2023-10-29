@@ -1,12 +1,8 @@
 module AST
   class ASTNode
-    def token_literal
-      raise NotImplementedError
-    end
+    def token_literal; end
   
-    def to_s
-      raise NotImplementedError
-    end
+    def to_s; end
   end
   
   class Statement < ASTNode
@@ -21,7 +17,7 @@ module AST
     end
   end
 
-  class Expression
+  class Expression < ASTNode
     attr_reader :token
   
     def initialize(token)
@@ -29,7 +25,7 @@ module AST
     end
   
     def token_literal
-      token.literal
+      @token.literal
     end
   end
   
@@ -60,7 +56,7 @@ module AST
     end
   
     def to_s
-      value
+      @value
     end
   end
   
@@ -78,20 +74,6 @@ module AST
     end
   end
 
-  class ReturnStatement < Statement
-
-    attr_reader :return_value
-
-    def initialize(token, return_value = nil)
-        super(token)
-        @return_value = return_value
-    end
-
-    def to_s
-        "#{token_literal} #{return_value};"
-    end
-  end
-
   class ExpressionStatement < Statement
 
     attr_reader :expression
@@ -106,6 +88,23 @@ module AST
     end
 
   end
+
+
+  class ReturnStatement < Statement
+
+    attr_reader :return_value
+
+    def initialize(token, return_value = nil)
+        super(token)
+        @return_value = return_value
+    end
+
+    def to_s
+        "#{token_literal} #{return_value};"
+    end
+  end
+
+
 
   class Integer < Expression
 

@@ -2,7 +2,6 @@ require_relative 'ast'
 require_relative 'lexer'
 require_relative 'tokens'
 require_relative 'parser'
-require_relative 'objects'
 require_relative 'evaluator'
 
 def print_parse_errors(errors)

@@ -23,7 +23,7 @@ PRECEDENCES = {
   TokenType::DIVISION => Precedence::PRODUCT,
   TokenType::MULTIPLICATION => Precedence::PRODUCT,
   TokenType::LPAREN => Precedence::CALL
-}
+}.freeze
 
 class Parser
 

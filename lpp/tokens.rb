@@ -29,19 +29,6 @@ module TokenType
     TRUE = :TRUE
 end
 
-class Token
-    attr_reader :token_type, :literal
-
-    def initialize(token_type, literal)
-        @token_type = token_type
-        @literal = literal
-    end
-
-    def to_s
-        "Type: #{@token_type}, Literal: #{@literal}"
-    end
-end
-
 def lookup_token_type(literal)
     keywords = {
         'variable' => TokenType::LET,
@@ -56,5 +43,17 @@ def lookup_token_type(literal)
     }
 
     keywords[literal] || TokenType::IDENT
+end
     
+class Token
+    attr_reader :token_type, :literal
+
+    def initialize(token_type, literal)
+        @token_type = token_type
+        @literal = literal
+    end
+
+    def to_s
+        "Type: #{@token_type}, Literal: #{@literal}"
+    end
 end
