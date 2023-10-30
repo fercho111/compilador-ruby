@@ -108,7 +108,7 @@ module Objects
     end
 
     def inspect
-      "ERROR: #{@message}"
+      "PAILA: #{@message}"
     end
 
     def to_s
@@ -148,7 +148,7 @@ module Objects
     def inspect
       parameters = ""
       parameters = @parameters.map(&:to_s).join(", ") unless @parameters.nil?
-      "fn(#{parameters}) {\n\t#{body}\n}"
+      "camello(#{parameters}) {\n\t#{body}\n}"
     end
   end
 

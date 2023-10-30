@@ -61,15 +61,13 @@ module Tokens
 
   def lookup_token_type(literal)
       keywords = {
-          'variable' => LET,
-          'funcion' => FUNCTION,
-          'para' => FOR,
-          'falso' => FALSE,
-          'procedimiento' => FUNCTION,
-          'regresa' => RETURN,
-          'si' => IF,
-          'si_no' => ELSE,
-          'verdadero' => TRUE
+          'aguevado' => FALSE,
+          'camello' => FUNCTION,
+          'manda' => RETURN,
+          'szs' => IF,
+          'nonas' => ELSE,
+          'pana' => LET,
+          'aletoso' => TRUE
       }
 
       keywords[literal] || IDENT
