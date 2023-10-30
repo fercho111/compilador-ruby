@@ -1,133 +1,140 @@
+# frozen_string_literal: true
+
 require_relative "tokens"
-include Tokens
 
 module Lexers
+  WHITE_SPACES = [" ", "\t", "\n", "\r"].freeze
+  ZERO = ""
+
   class Lexer
-    def initialize(source)
-      @source = source
-      @character = ''
-      @read_position = 0
+    def initialize(input)
       @position = 0
-      read_character
+      @read_position = 0
+      @ch = ZERO
+      @input = input
+      read_char
     end
 
     def next_token
       skip_whitespace
       r = nil
-      if @character =~ /^=$/
-        if peek_character == '='
-          token = make_two_character_token(Tokens::EQ)
-        else
-          token = Tokens::Token.new(Tokens::ASSIGN, @character)
-        end
-      elsif @character =~ /^\+$/
-        token = Tokens::Token.new(Tokens::PLUS, @character)
-      elsif @character =~ /^$/
-        token = Tokens::Token.new(Tokens::EOF, @character)
-      elsif @character =~ /^\($/
-        token = Tokens::Token.new(Tokens::LPAREN, @character)
-      elsif @character =~ /^\)$/
-        token = Tokens::Token.new(Tokens::RPAREN, @character)
-      elsif @character =~ /^\{$/
-        token = Tokens::Token.new(Tokens::LBRACE, @character)
-      elsif @character =~ /^\}$/
-        token = Tokens::Token.new(Tokens::RBRACE, @character)
-      elsif @character =~ /^,$/
-        token = Tokens::Token.new(Tokens::COMMA, @character)
-      elsif @character =~ /^;$/
-        token = Tokens::Token.new(Tokens::SEMICOLON, @character)
-      elsif @character =~ /^-$/
-        token = Tokens::Token.new(Tokens::MINUS, @character)
-      elsif @character =~ /^\/$/
-        token = Tokens::Token.new(Tokens::DIVISION, @character)
-      elsif @character =~ /^\*$/
-        token = Tokens::Token.new(Tokens::MULTIPLICATION, @character)
-      elsif @character =~ /^<$/
-        token = Tokens::Token.new(Tokens::LT, @character)
-      elsif @character =~ /^>$/
-        token = Tokens::Token.new(Tokens::GT, @character)
-      elsif @character =~ /^!$/
-        if peek_character == '='
-          token = make_two_character_token(Tokens::NOT_EQ)
-        else
-          token = Tokens::Token.new(Tokens::NEGATION, @character)
-        end
-      elsif is_letter(@character)
-        literal = read_identifier
-        token_type = Tokens::lookup_token_type(literal)
-        return Tokens::Token.new(token_type, literal)
-      elsif is_number(@character)
-        literal = read_number
-        return Tokens::Token.new(Tokens::INT, literal)
+      case @ch
+      when "="
+        r = ends_with_equal(Tokens::ASSIGN, Tokens::EQ)
+      when ";"
+        r = token(Tokens::SEMICOLON)
+      when "("
+        r = token(Tokens::LPAREN)
+      when ","
+        r = token(Tokens::COMMA)
+      when ")"
+        r = token(Tokens::RPAREN)
+      when "{"
+        r = token(Tokens::LBRACE)
+      when "+"
+        r = token(Tokens::PLUS)
+      when "}"
+        r = token(Tokens::RBRACE)
+      when "!"
+        r = ends_with_equal(Tokens::NEGATION, Tokens::NOT_EQ, duplicate_chars: false)
+      when "-"
+        r = token(Tokens::MINUS)
+      when "/"
+        r = token(Tokens::DIVISION)
+      when "*"
+        r = token(Tokens::MULTIPLICATION)
+      when "<"
+        r = token(Tokens::LT)
+      when ">"
+        r = token(Tokens::GT)
+      when ":"
+        r = token(Tokens::COLON)
+      when ZERO
+        r = token(Tokens::EOF)
       else
-        token = Tokens::Token.new(Tokens::ILLEGAL, @character)
+        case
+        when @ch.identifier?
+          identifier = read_identifier
+          return Tokens::Token.new(Tokens::lookup_token_type(identifier), identifier)
+        when @ch.number?
+          return Tokens::Token.new(Tokens::INT, read_number)
+        else
+          r = Tokens::Token.new(Tokens::ILLEGAL, @ch)
+        end
       end
-    
-      read_character
-      token
+      read_char
+      r
     end
 
     private
 
-    def is_letter(character)
-      character =~ /^[a-záéíóúA-ZÁÉÍÓÚñÑ_]$/
-    end
-
-    def is_number(character)
-      character =~ /^\d$/
-    end
-
-    def make_two_character_token(token_type)
-      prefix = @character
-      read_character
-      suffix = @character
-      Tokens::Token.new(token_type, "#{prefix}#{suffix}")
+    def read_value(&block)
+      current_position = @position
+      read_char while block.call @ch
+      @input[current_position..(@position - 1)]
     end
 
     def read_identifier
-      initial_position = @position
-      is_first_letter = true
-      while is_letter(@character) || (!is_first_letter && is_number(@character))
-          read_character
-          is_first_letter = false
-      end
-      @source[initial_position,@position]
+      read_value(&:identifier?)
     end
 
     def read_number
-      initial_position = @position
+      read_value(&:number?)
+    end
 
-      while is_number(@character)
-          read_character
+    def ends_with_equal(one_char, two_chars, duplicate_chars: true)
+      if peak_char == "="
+        current_char = @ch
+        read_char
+        value = if duplicate_chars
+                  "#{current_char}#{current_char}"
+                else
+                  "#{current_char}#{@ch}"
+                end
+        Tokens::Token.new(two_chars, value)
+      else
+        token(one_char)
       end
+    end
 
-      @source[initial_position,@position]
+    def token(token_type)
+      Tokens::Token.new(token_type, @ch)
     end
 
     def skip_whitespace
-      while @character =~ /^\s$/
-          read_character
-      end
+      read_char while WHITE_SPACES.any? { |wp| wp == @ch }
     end
 
-    def read_character
-      if @read_position >= @source.length
-          @character = ''
-      else
-          @character = @source[@read_position]
-      end
+    def read_char
+      @ch = peak_char
       @position = @read_position
       @read_position += 1
     end
 
-    def peek_character
-      if @read_position >= @source.length
-          return ''
+    def peak_char
+      if @read_position >= @input.length
+        ZERO
+      else
+        @input[@read_position]
       end
-
-      @source[@read_position]
     end
+  end
+end
 
+class String
+  def identifier?
+    letter? || self == "_"
   end
 
+  def letter?
+    if length > 1
+      false
+    else
+      match(/[A-Za-z]/) ? true : false
+    end
+  end
+
+  def number?
+    self =~ /\A\d+\Z/
+  end
 end
