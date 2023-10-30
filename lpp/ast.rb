@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module Ast
   class Node
     def token_literal; end

@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 module Objects
   class MObject
     def type_desc

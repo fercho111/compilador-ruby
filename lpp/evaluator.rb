@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative "objects"
 require_relative "tokens"
 include Tokens
@@ -102,7 +100,7 @@ module Evaluator
       when Objects::MInteger
         -right
       else
-        Objects::MError.new("unknown operator: -#{right.type_desc}")
+        Objects::MError.new("Operador desconocido: -#{right.type_desc}")
       end
     end
   end
@@ -137,7 +135,7 @@ module Evaluator
       evaluated = inner_eval(function.body, extend_env)
       unwrap_return_value(evaluated)
     else
-      Objects::MError.new("not a function: #{function.type_desc}")
+      Objects::MError.new("No es una función: #{function.type_desc}")
     end
   end
 
@@ -161,7 +159,7 @@ module Evaluator
   def self.eval_identifier(identifier, environment)
     value = environment[identifier.value]
     if value.nil?
-        Objects::MError.new("identifier not found: #{identifier.value}")
+        Objects::MError.new("Identificador no encontrado: #{identifier.value}")
     else
       value
     end
@@ -174,7 +172,7 @@ module Evaluator
     when "-"
       eval_minus_prefix_operator_expression(right)
     else
-      Objects::MError.new("Unknown operator : #{operator}#{right.type_desc}")
+      Objects::MError.new("Operador desconocido: #{operator}#{right.type_desc}")
     end
   end
 
@@ -197,7 +195,7 @@ module Evaluator
     when "!="
       (left != right).to_m
     else
-      Objects::MError.new("unknown operator: #{left.type_desc} #{operator} #{right.type_desc}")
+      Objects::MError.new("Operador desconocido: #{left.type_desc} #{operator} #{right.type_desc}")
     end
   end
 
@@ -209,9 +207,9 @@ module Evaluator
     elsif operator == "!="
       (left != right).to_m
     elsif left.type_desc != right.type_desc
-      Objects::MError.new("type mismatch: #{left.type_desc} #{operator} #{right.type_desc}")
+      Objects::MError.new("Discrepancia de tipos: #{left.type_desc} #{operator} #{right.type_desc}")
     else
-      Objects::MError.new("unknown operator: #{left.class} #{operator} #{right.class}")
+      Objects::MError.new("Operador Desconocido: #{left.class} #{operator} #{right.class}")
     end
   end
 
