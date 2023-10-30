@@ -1,149 +1,264 @@
-require_relative 'ast'
-require_relative 'objects'
+# frozen_string_literal: true
 
-TRUE = OBJECTS::Boolean.new(true)
-FALSE = OBJECTS::Boolean.new(false)
-NULL = OBJECTS::Null.new()
+require_relative "objects"
+require_relative "tokens"
+include Tokens
 
-TYPE_MISMATCH = 'Discrepancia de tipos: {} {} {}'
-UNKNOWN_PREFIX_OPERATOR = 'Operador desconocido: {}{}'
-UNKNOWN_INFIX_OPERATOR = 'Operador desconocido: {} {} {}'
-UNKNOWN_IDENTIFIER = 'Identificador no encontrado: {}'
+module Evaluator
+  M_TRUE = Objects::MBoolean.new(true)
+  M_FALSE = Objects::MBoolean.new(false)
 
-def evaluate(node, env)
-    node_type = node.class
-  
-    if node_type == AST::Program
-      return evaluate_program(node, env)
 
-    elsif node_type == AST::ExpressionStatement
-      return evaluate(node.expression, env)
+  class Environment
+    attr_reader :store, :outer
 
-    elsif node_type == AST::Integer
-      return Integer.new(node.value)
-
-    elsif node_type == AST::Boolean
-      return _to_boolean_object(node.value)
-
-    elsif node_type == AST::Prefix
-      right = evaluate(node.right, env)
-      return _evaluate_prefix_expression(node.operator, right)
-
-    elsif node_type == AST::Infix
-      left = evaluate(node.left, env)
-      right = evaluate(node.right, env)
-      return _evaluate_infix_expression(node.operator, left, right)
-
-    elsif node_type == AST::Block
-      return _evaluate_block_statement(node, env)
-
-    elsif node_type == AST::If
-      return _evaluate_if_expression(node, env)
-
-    elsif node_type == AST::ReturnStatement
-      value = evaluate(node.return_value, env)
-      return Return.new(value)
-
-    elsif node_type == AST::LetStatement
-      value = evaluate(node.value, env)
-      env[node.name.value] = value
-      
-    elsif node_type == AST::Identifier
-      return _evaluate_identifier(node, env)
+    def initialize(store = {}, outer = nil)
+      @store = store
+      @outer = outer
     end
-    return nil
+
+    def []=(name, value)
+      @store[name] = value
+    end
+
+    def [](name)
+      obj = @store[name]
+      if obj.nil? && !@outer.nil?
+        @outer[name]
+      else
+        obj
+      end
+    end
   end
-  
-def evaluate_program(program, env)
+
+  def self.evaluate(program, environment)
     result = nil
-
     program.statements.each do |statement|
-      result = evaluate(statement, env)
-
-      if result.is_a?(OBJECTS::Return)
-        result = result.value
-        return result
-      elsif result.is_a?(OBJECTS::Error)
+      result = inner_eval(statement, environment)
+      case result
+      when Objects::MReturnValue
+        return result.value
+      when Objects::MError
         return result
       end
     end
+    result
+  end
 
-    return result
-end
-
-def evaluate_bang_operator_expression(right)
-    if right == TRUE
-        return FALSE
-    elsif right == FALSE
-        return TRUE
-    elsif right == NULL
-        return TRUE
+  def self.inner_eval(node, environment)
+    case node
+    when Ast::Identifier
+      eval_identifier(node, environment)
+    when Ast::IntegerLiteral
+      Objects::MInteger.new(node.value)
+    when Ast::InfixExpression
+      inner_eval(node.left, environment).if_not_error do |left|
+        inner_eval(node.right, environment).if_not_error do |right|
+          eval_infix_expression(node.operator, left, right)
+        end
+      end
+    when Ast::BlockStatement
+      eval_block_statement(node, environment)
+    when Ast::ExpressionStatement
+      inner_eval(node.expression, environment)
+    when Ast::IfExpression
+      eval_if_expression(node, environment)
+    when Ast::CallExpression
+      inner_eval(node.function, environment).if_not_error do |function|
+        args = eval_expressions(node.arguments, environment)
+        if args.size == 1 && args[0].error?
+          args[0]
+        else
+          apply_function(function, args)
+        end
+      end
+    when Ast::ReturnStatement
+      inner_eval(node.return_value, environment).if_not_error do |value|
+        Objects::MReturnValue.new(value)
+      end
+    when Ast::PrefixExpression
+      inner_eval(node.right, environment).if_not_error do |right|
+        eval_prefix_expression(node.operator, right)
+      end
+    when Ast::BooleanLiteral
+      node.value.to_m
+    when Ast::LetStatement
+      inner_eval(node.value, environment).if_not_error do |value|
+        environment[node.name.value] = value
+      end
+    when Ast::FunctionLiteral
+      Objects::MFunction.new(node.parameters, node.body, environment)
     else
-        return FALSE
+      p node
+      nil
     end
-end
+  end
 
-
-def evaluate_minus_operator_expression(right)
-    if right.instance_of?(Integer)
-        return Integer.new(-right.value)
-    end
-    return NULL
-end
-
-def evaluate_prefix_expression(operator, right)
-    if operator=='!'
-        return _evaluate_bang_operator_expression(right)
-    elsif operator=='-'
-        return _evaluate_minus_operator_expression(right)
+  def self.eval_minus_prefix_operator_expression(right)
+    if right.nil?
+      nil
     else
-        return NULL
+      case right
+      when Objects::MInteger
+        -right
+      else
+        Objects::MError.new("unknown operator: -#{right.type_desc}")
+      end
     end
-end
+  end
 
-def evaluate_integer_infix_expression(operator, left, right)
-    left_value =left.value
-    right_value =right.value
-    if operator == '+'
-        return Integer.new(left_value+right_value)
-    elsif operator == '-'
-        return Integer.new(left_value-right_value)
-    elsif operator == '*'
-        return Integer.new(left_value*right_value)
-    elsif operator == '/'
-        return Integer.new(left_value / right_value)
-    elsif operator == '<'
-        return _to_boolean_object(left_value<right_value)
-    elsif operator == '<='
-        return _to_boolean_object(left_value<=right_value)
-    elsif operator == '>'
-        return _to_boolean_object(left_value>right_value)
-    elsif operator == '>='
-        return _to_boolean_object(left_value>=right_value)
-    elsif operator == '=='
-        return _to_boolean_object(left_value==right_value)
-    elsif operator == '!='
-        return _to_boolean_object(left_value!=right_value)
+
+  def self.eval_bang_operator_expression(right)
+    case right
+    when M_TRUE
+      M_FALSE
+    when M_FALSE
+      M_TRUE
+    when Objects::M_NULL
+      M_TRUE
+    else
+      M_FALSE
     end
-    return NULL
-end
+  end
 
-def evaluate_infix_expression(operator, left, right)
-    if left.instance_of?(Integer) && right.instance_of?(Integer)
-        return __evaluate_integer_infix_expression(operator,left,right)
-    elsif operator=='=='
-        return to_boolean_object(left == right)
-    elsif operator =='!='
-        return to_boolean_object(left != right)
+  def self.eval_expressions(arguments, environment)
+    arguments.map do |argument|
+      evaluated = inner_eval(argument, environment)
+      return [evaluated] if evaluated.error?
+
+      evaluated
     end
-    return NULL
+  end
+
+  def self.apply_function(function, args)
+    case function
+    when Objects::MFunction
+      extend_env = extend_function_env(function, args)
+      evaluated = inner_eval(function.body, extend_env)
+      unwrap_return_value(evaluated)
+    else
+      Objects::MError.new("not a function: #{function.type_desc}")
+    end
+  end
+
+  def self.extend_function_env(function, args)
+    env = Environment.new({}, function.environment)
+    function.parameters&.each_with_index do |identifier, i|
+      env[identifier.value] = args[i]
+    end
+    env
+  end
+
+  def self.unwrap_return_value(obj)
+    case obj
+    when Objects::MReturnValue
+      obj.value
+    else
+      obj
+    end
+  end
+
+  def self.eval_identifier(identifier, environment)
+    value = environment[identifier.value]
+    if value.nil?
+        Objects::MError.new("identifier not found: #{identifier.value}")
+    else
+      value
+    end
+  end
+
+  def self.eval_prefix_expression(operator, right)
+    case operator
+    when "!"
+      eval_bang_operator_expression(right)
+    when "-"
+      eval_minus_prefix_operator_expression(right)
+    else
+      Objects::MError.new("Unknown operator : #{operator}#{right.type_desc}")
+    end
+  end
+
+  def self.eval_integer_infix_expression(operator, left, right)
+    case operator
+    when "+"
+      left + right
+    when "-"
+      left - right
+    when "*"
+      left * right
+    when "/"
+      left / right
+    when "<"
+      (left < right).to_m
+    when ">"
+      (left > right).to_m
+    when "=="
+      (left == right).to_m
+    when "!="
+      (left != right).to_m
+    else
+      Objects::MError.new("unknown operator: #{left.type_desc} #{operator} #{right.type_desc}")
+    end
+  end
+
+  def self.eval_infix_expression(operator, left, right)
+    if left.is_a?(Objects::MInteger) && right.is_a?(Objects::MInteger)
+      eval_integer_infix_expression(operator, left, right)
+    elsif operator == "=="
+      (left == right).to_m
+    elsif operator == "!="
+      (left != right).to_m
+    elsif left.type_desc != right.type_desc
+      Objects::MError.new("type mismatch: #{left.type_desc} #{operator} #{right.type_desc}")
+    else
+      Objects::MError.new("unknown operator: #{left.class} #{operator} #{right.class}")
+    end
+  end
+
+  def self.eval_if_expression(if_expression, environment)
+    inner_eval(if_expression.condition, environment).if_not_error do |condition|
+      if condition.truthy?
+        inner_eval(if_expression.consequence, environment)
+      elsif !if_expression.alternative.nil?
+        inner_eval(if_expression.alternative, environment)
+      else
+        Objects::M_NULL
+      end
+    end
+  end
+
+  def self.eval_block_statement(block_statement, environment)
+    result = nil
+    block_statement.statements.each do |statement|
+      result = inner_eval(statement, environment)
+      return result if result.is_a?(Objects::MReturnValue) || result.is_a?(Objects::MError)
+    end
+    result
+  end
 end
 
-def new_error(message, args)
-    return Error.new("#{message} #{args.join(' ')}")
+class TrueClass
+  def to_m
+    Objects::MBoolean.new(true)
+  end
 end
-  
 
-def to_boolean_object(value)
-    return value ? TRUE : FALSE
+class FalseClass
+  def to_m
+    Objects::MBoolean.new(false)
+  end
+end
+
+class NilClass
+  def if_not_error(&)
+    self
+  end
+
+  def error?
+    false
+  end
+
+  def type_desc
+    "nil"
+  end
 end
