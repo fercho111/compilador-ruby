@@ -12,8 +12,6 @@ loop do
   program = parser.parse_program
 
   unless parser.errors.empty?
-    puts "Whoops! we ran into some monkey business here!"
-    puts " parser errors:"
     parser.errors.each { |error| puts "\t#{error}" }
     next
   end
